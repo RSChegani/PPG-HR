@@ -29,7 +29,7 @@ def export_mat_data(import_dir: str, export_dir: str, import_suffix: str = '.mat
             for col in subject_hr_data.columns:
                 subject_hr_data[col] = data[col].flatten()
             # save the Holter data as a csv file in the export dir
-            subject_hr_data.to_csv(os.path.join(export_dir,filename[:-len(import_suffix)]+'_ECG.csv'))
+            subject_hr_data.to_csv(os.path.join(export_dir,filename[:-len(import_suffix)]+'_ECG.csv'), index=False)
             
             subject_sensor_data = pd.DataFrame(columns = ['sigPPG_1','sigPPG_2','sigPPG_3',
             'sigAcc_1','sigAcc_2','sigAcc_3',
@@ -39,7 +39,7 @@ def export_mat_data(import_dir: str, export_dir: str, import_suffix: str = '.mat
                 for sensor_count in range(1,4):
                     subject_sensor_data[key_+'_'+str(sensor_count)] = data[key_][sensor_count-1]
             # save the watch data as a csv file in the export dir
-            subject_sensor_data.to_csv(os.path.join(export_dir,filename[:-len(import_suffix)]+'_watch.csv'))
+            subject_sensor_data.to_csv(os.path.join(export_dir,filename[:-len(import_suffix)]+'_watch.csv'), index=False)
         index += 1
 
 if __name__ == "__main__":
