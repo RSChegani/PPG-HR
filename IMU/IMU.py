@@ -1,11 +1,12 @@
 import numpy as np
 
 class Config:
-    """Configurations for ACC analysis
+    """Configurations for IMU analysis
     """
     def __init__(self):
-        # intialize the params based on the data
-        self.sampling_rate = 50 # based on the data readMe file
+        """Initialize default parameters based on the dataset."""
+
+        self.sampling_rate = 50 # Based on the dataset's README file
         
         # filter design init values
         self.filter_type: str = 'band'
@@ -35,7 +36,8 @@ class Config:
 
 class RollPitch:
     """Calculate Roll (Phi) and Pitch (Theta) from ACC and Gyro
-    See the following links from @PhilsLab on youtube
+    
+    Complementary filter approach based on @PhilsLab YouTube videos:
     - https://www.youtube.com/watch?v=RZd6XDx5VXo
     - https://www.youtube.com/watch?v=BUW2OdAtzBw
     - https://www.youtube.com/watch?v=hQUkiC5o0JI
@@ -43,15 +45,15 @@ class RollPitch:
     def __init__(self):
         """initialize the variables for complementry filter and init values for pitch and roll
         """
-        self.comp_filt_alpha: float = 0.05 #This means we use 5% of ACC and 95% of Gyro fot Roll and Pitch
+        self.comp_filt_alpha: float = 0.05 # 5% ACC, 95% Gyro weighting
         
-        # initialize the roll and pitch values based on the data
+        # Initialize roll and pitch estimates (in radians)
         self.phiHat_rad: float = 4.2
         self.thetaHat_rad: float = 1.2
 
         # constant values
-        self.g_value = 9.81
-        self.rad_to_degree = 57.2957795131
+        self.g_value: float = 9.81 # Gravity constant
+        self.rad_to_degree: float = 180 / np.pi  # Convert radians to degrees
 
     def calculate_roll_pitch(self, ax_acc: np.ndarray, ay_acc: np.ndarray, az_acc: np.ndarray,
      p_gyro: np.ndarray, q_gyro: np.ndarray, r_gyro: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -59,43 +61,42 @@ class RollPitch:
         corrected ACC and Gyro values. All inputs should have the same length.
 
         Args:
-            ax_acc (np.ndarray): ACC X, in m/s2
-            ay_acc (np.ndarray): ACC Y, in m/s2
-            az_acc (np.ndarray): ACC Z, in m/s2
-            p_gyro (np.ndarray): Gyro X, radian per seconds
-            q_gyro (np.ndarray): Gyro Y, radian per seconds
-            r_gyro (np.ndarray): Gyro Z, radian per seconds
+            ax_acc (np.ndarray): ACC X (m/s²)
+            ay_acc (np.ndarray): ACC Y (m/s²)
+            az_acc (np.ndarray): ACC Z (m/s²)
+            p_gyro (np.ndarray): Gyro X (rad/s)
+            q_gyro (np.ndarray): Gyro Y (rad/s)
+            r_gyro (np.ndarray): Gyro Z (rad/s)
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: Roll and Pitch in degree
+            tuple[np.ndarray, np.ndarray]: Roll and Pitch in degrees
         """
         # init the estimated vectores
-        estimated_phi = np.zeros(len(ax_acc)) # roll
-        estimated_theta = np.zeros(len(ax_acc)) # pitch
+        n_samples = len(ax_acc)
+        estimated_phi = np.zeros(len(n_samples)) # roll
+        estimated_theta = np.zeros(len(n_samples)) # pitch
 
-        for i in range(len(ax_acc)):
+        phiHat_rad = self.phiHat_rad  # Initialize roll estimate
+        thetaHat_rad = self.thetaHat_rad  # Initialize pitch estimate
 
-            ax_acc_i = ax_acc[i]
-            ay_acc_i = ay_acc[i]
-            az_acc_i = az_acc[i]
+        dt = 1 / Config.sampling_rate  # Time step
+
+        for i in range(n_samples):
 
             # Using ACC for pitch and roll in Rad.
-            phiHat_acc_rad = np.arctan(ay_acc_i / az_acc_i)
-            thetaHat_acc_rad = np.arctan(ax_acc_i / self.g_value)
+            phiHat_acc_rad = np.arctan(ay_acc[i] / az_acc[i])
+            thetaHat_acc_rad = np.arctan(ax_acc[i] / self.g_value)
 
-            p_gyro_i = p_gyro[i]
-            q_gyro_i = q_gyro[i]
-            r_gyro_i = r_gyro[i]
-
-            # Use a weighted average between ACC and Gyro for Pitch and Roll calculation
-            phiDot_gyro = p_gyro_i + np.tan(thetaHat_acc_rad) * (np.sin(phiHat_acc_rad) * q_gyro_i \
-                + np.cos(phiHat_acc_rad) * r_gyro_i) # roll
-            thetaDot_gyro = np.cos(phiHat_acc_rad) * q_gyro_i - np.sin(phiHat_acc_rad) * r_gyro_i # pitch
-
+            # Compute roll and pitch rates from gyroscope
+            phiDot_gyro = p_gyro[i] + np.tan(thetaHat_acc_rad) * (np.sin(phiHat_acc_rad) * q_gyro[i] \
+                + np.cos(phiHat_acc_rad) * r_gyro[i]) # roll
+            thetaDot_gyro = np.cos(phiHat_acc_rad) * q_gyro[i] - np.sin(phiHat_acc_rad) * r_gyro[i] # pitch
+            
+            # Complementary filter: Blend ACC and Gyro estimates
             phiHat_rad = self.comp_filt_alpha * phiHat_acc_rad + ((1 - self.comp_filt_alpha) * \
-                (phiHat_rad + phiDot_gyro * (1 / Config.sampling_rate)))
+                (phiHat_rad + phiDot_gyro * (1 / dt)))
             thetaHat_rad = self.comp_filt_alpha * thetaHat_acc_rad + ((1 - self.comp_filt_alpha) * \
-                (thetaHat_rad + thetaDot_gyro * (1 / Config.sampling_rate)))
+                (thetaHat_rad + thetaDot_gyro * (1 / dt)))
 
             # convert it to degree
             estimated_phi[i] = phiHat_rad * self.rad_to_degree
