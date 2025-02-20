@@ -34,10 +34,22 @@ SteadyPulse
 ===========
 
 
-    Add a short description here!
+    Estimate HR with IMU noise removal
 
 
-A longer description of your project goes here...
+This repo provides an introduction to analysis of PPG and IMU data using an open source data set. There is a notebook in each module that walks through the analysis step by step. 
+For Gyro and ACC see: src/imu/analysis.ipynb
+And for PPG see: src/ppg/analysis.ipynb
+
+===========
+Setting up the Virtual Environment
+===========
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/SteadyPulse.git
+cd SteadyPulse
 
 
 .. _pyscaffold-notes:
