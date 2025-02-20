@@ -48,8 +48,8 @@ Setting up the Virtual Environment
 1. Clone the repository:
 
 ..  code-block:: bash
-| git clone https://github.com/yourusername/SteadyPulse.git  
-| cd SteadyPulse
+    | git clone https://github.com/yourusername/SteadyPulse.git  
+    | cd SteadyPulse
 
 
 .. _pyscaffold-notes:
